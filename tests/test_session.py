@@ -4,7 +4,7 @@ from brainfm_tui.session import Activity, load_token_from_bytes, track_id, track
 
 
 def test_load_token_unwraps_double_encoded_jwt():
-    jwt = "eyJhbGlIn0.e30.sig"
+    jwt = "eyJhbGciOiJub25lIn0.e30.sig"
     raw = json.dumps({"token": json.dumps(jwt), "type": json.dumps("email")}).encode("utf-16-le")
     assert load_token_from_bytes(raw) == jwt
 
