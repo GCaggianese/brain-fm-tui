@@ -45,3 +45,29 @@ def test_get_json_401_is_auth_expired():
         assert "my.brain.fm" in str(exc)
     else:
         raise AssertionError("expected AuthExpired")
+
+
+from brainfm_tui.api import catalog
+from brainfm_tui.session import Activity
+
+
+def test_catalog_embeds_activities_without_a_second_call():
+    def opener(req, timeout):
+        assert req.full_url.endswith("/mentalStates/dynamic")
+        return FakeResponse(200, {"result": [
+            {"id": "focus", "displayValue": "Focus", "activities": [
+                {"id": "dw", "displayValue": "Deep Work"},
+            ]},
+        ]})
+
+    assert catalog("tok", opener=opener) == [Activity("focus", "Focus", "dw", "Deep Work")]
+
+
+def test_catalog_fetches_activities_when_states_have_none():
+    def opener(req, timeout):
+        if req.full_url.endswith("/mentalStates/dynamic"):
+            return FakeResponse(200, {"result": [{"id": "focus", "displayValue": "Focus"}]})
+        assert req.full_url.endswith("/mentalStates/dynamic/focus/activities")
+        return FakeResponse(200, {"result": [{"id": "dw", "displayValue": "Deep Work"}]})
+
+    assert catalog("tok", opener=opener) == [Activity("focus", "Focus", "dw", "Deep Work")]

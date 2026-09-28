@@ -71,3 +71,21 @@ def next_serving(token: str, user_id: str, track_id: str, opener=urllib.request.
         body={},
         opener=opener,
     )
+
+
+from brainfm_tui.session import Activity, activities_from
+
+
+def catalog(token: str, opener=urllib.request.urlopen) -> list[Activity]:
+    states = mental_states(token, opener=opener)
+    embedded = activities_from(states)
+    if embedded and any(item.activity_id != item.mental_state_id for item in embedded):
+        return embedded
+    found: list[Activity] = []
+    for state in embedded:
+        nested = activities_from([
+            {"id": state.mental_state_id, "displayValue": state.mental_state,
+             "activities": activities_for(token, state.mental_state_id, opener=opener)},
+        ])
+        found.extend(nested or [state])
+    return found
