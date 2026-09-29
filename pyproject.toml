@@ -1,9 +1,15 @@
 [project]
 name = "brain-fm-tui"
 version = "0.1.0"
-description = "Textual Brain.fm player. Uses the local session and mpv. No browser window."
+description = "Unofficial Textual player for a Brain.fm subscription. Audio through mpv."
 requires-python = ">=3.12"
-dependencies = ["textual==8.2.8"]
+license = {text = "Apache-2.0"}
+authors = [{name = "Kang", email = "kangqx@pm.me"}]
+readme = "README.md"
+dependencies = [
+    "dbus-next==0.2.3",
+    "textual==8.2.8",
+]
 
 [project.scripts]
 brain-fm-tui = "brainfm_tui.app:main"

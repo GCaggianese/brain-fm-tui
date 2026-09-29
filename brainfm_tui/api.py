@@ -28,7 +28,7 @@ def get_json(method: str, url: str, token: str, body=None, opener=urllib.request
             payload = json.loads(resp.read().decode())
     except urllib.error.HTTPError as exc:
         if exc.code == 401:
-            raise AuthExpired("session expired; open https://my.brain.fm once, then retry") from exc
+            raise AuthExpired("session expired") from exc
         detail = exc.read().decode(errors="replace")[:180]
         raise RuntimeError(f"{method} {url} -> {exc.code} {detail}") from exc
     if isinstance(payload, dict) and "result" in payload:
@@ -53,24 +53,31 @@ def activities_for(token: str, mental_state_id: str, opener=urllib.request.urlop
     )
 
 
-def start_session(token: str, user_id: str, activity_id: str, opener=urllib.request.urlopen) -> dict:
+def start_session(token: str, user_id: str, activity_id: str, levels: list[str] | None = None, opener=urllib.request.urlopen) -> dict:
+    body = {"dynamicActivityId": activity_id, "version": 3}
+    if levels:
+        body["neuralEffectLevels"] = levels
     return get_json(
         "POST",
         f"{V3}/users/{user_id}/sessions?platform=web",
         token,
-        body={"dynamicActivityId": activity_id, "version": 3},
+        body=body,
         opener=opener,
     )
 
 
-def next_serving(token: str, user_id: str, track_id: str, opener=urllib.request.urlopen) -> dict:
-    return get_json(
-        "POST",
-        f"{V3}/users/{user_id}/sessions/tracks/{track_id}?platform=web",
-        token,
-        body={},
-        opener=opener,
-    )
+def session_preferences(token: str, user_id: str, opener=urllib.request.urlopen) -> dict:
+    return get_json("GET", f"{V2}/users/{user_id}/session/preferences", token, opener=opener)
+
+
+def set_neural_levels(token: str, user_id: str, mental_state: str, want: list[str], have: list[str], opener=urllib.request.urlopen) -> None:
+    url = f"{V2}/users/{user_id}/session/preferences"
+    remove = [item for item in have if item not in want]
+    add = [item for item in want if item not in have]
+    if remove:
+        get_json("DELETE", url, token, body={"mentalState": mental_state, "neuralEffectLevels": remove}, opener=opener)
+    if add:
+        get_json("POST", url, token, body={"mentalState": mental_state, "neuralEffectLevels": add}, opener=opener)
 
 
 from brainfm_tui.session import Activity, activities_from

@@ -25,6 +25,7 @@ class Mpv:
     def __init__(self, sock: Path = SOCK):
         self.sock = sock
         self.proc: subprocess.Popen | None = None
+        self._volume: float | None = None
 
     def start(self, url: str) -> None:
         self.sock.parent.mkdir(parents=True, exist_ok=True)
@@ -45,6 +46,16 @@ class Mpv:
             return
         self._ipc(["loadfile", url, "replace"])
         self._ipc(["set_property", "pause", False])
+        self._apply_volume()
+
+    def set_volume(self, level: float) -> None:
+        self._volume = max(0.0, min(1.0, level))
+        self._apply_volume()
+
+    def _apply_volume(self) -> None:
+        if self._volume is None or self.proc is None or self.proc.poll() is not None:
+            return
+        self._ipc(["set_property", "volume", self._volume * 100])
 
     def toggle(self) -> None:
         self._ipc(["cycle", "pause"])
