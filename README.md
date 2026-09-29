@@ -1,16 +1,32 @@
 # brain-fm-tui
 
-A terminal player for your own Brain.fm subscription. The interface is a [Python](https://www.python.org/) [Textual](https://textual.textualize.io/) app. Audio goes through [mpv](https://mpv.io/). It does not open a browser, and it does not launch the official desktop app.
+A terminal interface for Brain.fm, built with [Textual](https://textual.textualize.io/) and powered by [mpv](https://mpv.io/).
 
-![The player on the Focus tab, Deep Work selected, ADHD on, High neural effect](docs/screenshot.png)
+![brain-fm-tui running on the Focus tab with Deep Work selected, ADHD mode enabled, and High neural effect](docs/screenshot.png)
 
-This project has nothing to do with Brain.fm. It is not affiliated with, endorsed by, or maintained by them. Brain.fm is a trademark of its owner. You need your own subscription. The API is not a public one, and it can change without notice.
+> [!IMPORTANT]
+> `brain-fm-tui` is an independent project. It is not affiliated with, endorsed by, or maintained by Brain.fm.
+>
+> Brain.fm is a trademark of its respective owner. The project uses the same private API as the Brain.fm website, which may change without notice.
 
-## Install
+## Requirements
 
-You need Python 3.12 or newer, and `mpv` on your `PATH`. `playerctl` is optional. It is how media keys and other players talk to this one.
+- Python 3.12 or newer
+- [mpv](https://mpv.io/) on your `PATH`
+- [`playerctl`](https://github.com/altdesktop/playerctl) *(optional)* for media keys and MPRIS control
 
-With [uv](https://docs.astral.sh/uv/):
+`mpv` handles audio playback. Without it, the application can still load activities, but playback will fail.
+
+## Installation
+
+Clone the repository:
+
+```sh
+git clone https://github.com/GCaggianese/brain-fm-tui
+cd brain-fm-tui
+```
+
+### Using uv
 
 ```sh
 uv sync
@@ -18,7 +34,13 @@ uv run brain-fm-tui --setup
 uv run brain-fm-tui
 ```
 
-Or with pip, from a clone of this repository:
+Run the tests with:
+
+```sh
+uv run pytest
+```
+
+### Using pip
 
 ```sh
 pip install .
@@ -26,34 +48,90 @@ brain-fm-tui --setup
 brain-fm-tui
 ```
 
-`uv sync` also installs the test dependency. `pip install .` installs the player only. Tests are `uv run pytest`.
+## Authentication
 
-## Session
+`brain-fm-tui` uses the `token` cookie from an existing Brain.fm browser session.
 
-The player does not log you in. You paste the session cookie yourself.
+To get it:
 
-Open the site, then developer tools, Network. The initiator document is the one document request. Open it, Cookies, the last one is `token`. Copy that value.
+1. Sign in to Brain.fm.
+2. Open Developer Tools → **Network**.
+3. Reload the page.
+4. Open the main document request.
+5. Find the `token` cookie and copy its value.
+
+Then run:
 
 ```sh
 brain-fm-tui --setup
 ```
 
-The prompt is `paste your cookie here:`. Nothing is shown while you paste. That is the hide, not a stuck prompt. Press Enter after it. The token is written to `~/.local/share/brain-fm-tui/session` and is not printed back. A value that is not a token is rejected.
+Paste the token when prompted and press Enter. Input is hidden while typing.
 
-The cookie is short-lived, about 15 minutes. When it expires, paste a new one the same way. Ctrl+R only re-reads the file on disk. It does not sign you in, and it does not open anything.
+The token is stored at:
 
-## Keys
+```text
+~/.local/share/brain-fm-tui/session
+```
 
-Tab and Shift+Tab move between Focus, Relax, Sleep, and Meditate. Enter plays the highlighted activity. Space pauses. `n` skips to the next track. `q` quits, and stops mpv.
+Invalid tokens are rejected before anything is saved.
 
-`a` toggles ADHD for the category you are on. On Brain.fm that means the neural effect is High and nothing else. `1`, `2`, and `3` toggle Low, Medium, and High on their own, so more than one can be on. A filled dot is selected. The choice is saved to the same preference the website uses, and it follows the category tab. If that category is already playing, the session starts again with the new mix.
+Brain.fm tokens are short-lived. When yours expires, copy a new one and run `--setup` again.
 
-Ctrl+P opens Textual's command palette.
+`Ctrl+R` reloads the token from disk. It does not obtain a new one.
+
+## Controls
+
+Use `Tab` and `Shift+Tab` to move between Focus, Relax, Sleep, and Meditate. Each tab shows the activities available for that category.
+
+| Key | Action |
+| --- | --- |
+| `Enter` | Play selected activity |
+| `Space` | Pause / resume |
+| `n` | Next track |
+| `a` | Toggle ADHD mode |
+| `1` | Toggle Low neural effect |
+| `2` | Toggle Medium neural effect |
+| `3` | Toggle High neural effect |
+| `Ctrl+R` | Reload session token |
+| `Ctrl+P` | Open Textual command palette |
+| `q` | Quit |
+
+The track information above the activity list comes from the track returned by Brain.fm and includes its title, category, activity, genre, length, and tempo.
+
+## Neural effect
+
+The row below the current track shows the neural-effect mix for the selected category.
+
+Low, Medium, and High can be toggled independently. A filled dot means enabled.
+
+ADHD mode corresponds to **High only**. Enabling Low or Medium while ADHD mode is active disables ADHD mode because the mix is no longer exclusively High.
+
+The setting is saved per category using the same account preference as the Brain.fm website. Focus, Sleep, Relax, and Meditate can therefore each have different mixes.
+
+Changing the mix for the category currently playing restarts its session so the new setting takes effect.
 
 ## playerctl
 
-This player publishes an MPRIS service, so `playerctl` play, pause, next, and volume talk to it. Next asks Brain.fm for the next queued track. It does not restart the one that is playing. If something else already owns the name `brainfm`, the footer shows the name that was used instead.
+`brain-fm-tui` exposes an MPRIS service, so it can be controlled with `playerctl`:
+
+```sh
+playerctl play
+playerctl pause
+playerctl next
+playerctl volume 0.5
+```
+
+Both `playerctl next` and the `n` key advance through the queue returned by Brain.fm.
+
+The default MPRIS name is:
+
+```text
+brainfm
+```
+
+If that name is already in use, the active name is shown in the footer.
 
 ## License
 
-Apache-2.0. See `LICENSE`.
+Apache-2.0. See [LICENSE](LICENSE).
