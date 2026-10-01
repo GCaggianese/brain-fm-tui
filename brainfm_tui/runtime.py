@@ -66,6 +66,9 @@ class Runtime:
             self.queue = self._servings()
         return self._play_item(self.queue.pop(0), self.activity)
 
+    def watch_end(self, callback) -> None:
+        self.mpv.watch(callback)
+
     def close(self) -> None:
         self.mpv.close()
 

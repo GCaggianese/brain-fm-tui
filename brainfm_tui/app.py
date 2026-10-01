@@ -58,6 +58,8 @@ class BrainFmApp(App):
         yield Footer()
 
     def on_mount(self) -> None:
+        if self.backend is not None and hasattr(self.backend, "watch_end"):
+            self.backend.watch_end(lambda: self.call_from_thread(self.action_skip))
         self._fill()
         if self._mpris_enabled:
             self.run_worker(self._start_mpris(), exclusive=True)
